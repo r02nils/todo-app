@@ -1,5 +1,6 @@
 <script>
     import '../app.css';
+    import '@skeletonlabs/skeleton/styles/skeleton.css';
 
     import Sidebar from "../components/Sidebar.svelte";
     import Header from "../components/Header.svelte";

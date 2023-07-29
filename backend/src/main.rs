@@ -87,10 +87,10 @@ async fn update(State(pool): State<SqlitePool>, Form(todo): Form<Todo>) -> Resul
     Ok(Json(true))
 }
 
-async fn delete(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Redirect> {
+async fn delete(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Json<bool>> {
     // Update todo
     sqlx::query!("DELETE FROM project WHERE id = ?", id)
         .execute(&pool)
         .await?;
-    Ok(Redirect::to("http://localhost:5173"))
+    Ok(Json(true))
 }
