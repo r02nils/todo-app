@@ -6,6 +6,5 @@ export type TodoItem = {
 
 export type ProjectType = {
     id: number,
-    name: string,
-    todos: TodoItem[]
+    description: string
 }
