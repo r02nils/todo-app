@@ -4,7 +4,7 @@
 
     function removeProject() {
 
-        fetch("http://localhost:8000/delete/" + $modalStore[0].value, {
+        fetch("http://localhost:8000/deleteProject/" + $modalStore[0].value, {
             method: "POST",
             headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
         }).then((response) => {

@@ -19,11 +19,16 @@ async fn main() -> Result<()> {
 
     // Create router for server
     let app = Router::new()
-        .route("/", get(list))
-        .route("/create", post(create))
-        .route("/read/:id", get(read))
-        .route("/update", get(update))
-        .route("/delete/:id", post(delete))
+        .route("/", get(list_project))
+        .route("/createProject", post(create_project))
+        .route("/readProject/:id", get(read_project))
+        .route("/updateProject", get(update_project))
+        .route("/deleteProject/:id", post(delete_project))
+        .route("/todos/:id", get(list_todo))
+        .route("/createTodo", post(create_todo))
+        .route("/readTodo/:id", get(read_todo))
+        .route("/updateTodo", get(update_todo))
+        .route("/deleteTodo/:id", post(delete_todo))
         .with_state(pool)
         .layer(CorsLayer::very_permissive());
 
@@ -36,40 +41,98 @@ async fn main() -> Result<()> {
 }
 
 #[derive(Deserialize)]
+struct NewProject {
+    description: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Project {
+    id: i64,
+    description: String,
+}
+
+#[derive(Deserialize)]
 struct NewTodo {
+    project_id: i64,
     description: String,
 }
 
 #[derive(Serialize, Deserialize)]
 struct Todo {
     id: i64,
-    description: String
+    project_id: i64,
+    description: String,
+    done: bool,
 }
 
-async fn list(State(pool): State<SqlitePool>) -> Result<Json<Vec<Todo>>> {
-    // List all notes
-    let todos = sqlx::query_as!(Todo, "SELECT id, description FROM project ORDER BY id")
+async fn list_project(State(pool): State<SqlitePool>) -> Result<Json<Vec<Project>>> {
+    let projects = sqlx::query_as!(Project, "SELECT id, description FROM project ORDER BY id")
         .fetch_all(&pool)
         .await?;
-    Ok(Json(todos))
+    Ok(Json(projects))
 }
 
-async fn create(State(pool): State<SqlitePool>, Form(todo): Form<NewTodo>) -> Result<Json<bool>> {
-    // Create new note
+async fn create_project(State(pool): State<SqlitePool>, Form(project): Form<NewProject>) -> Result<Json<bool>> {
     sqlx::query!(
         "INSERT INTO project (description) VALUES (?)",
-        todo.description,
+        project.description,
     )
         .execute(&pool)
         .await?;
     Ok(Json(true))
 }
 
-async fn read(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Json<Todo>> {
-    // Read todo
+async fn read_project(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Json<Project>> {
+    let project = sqlx::query_as!(
+        Project,
+        "SELECT id, description FROM project WHERE id = ?",
+        id
+    )
+        .fetch_one(&pool)
+        .await?;
+    Ok(Json(project))
+}
+
+async fn update_project(State(pool): State<SqlitePool>, Form(project): Form<Project>) -> Result<Json<bool>> {
+    sqlx::query!(
+        "UPDATE project SET description = ? WHERE id = ?",
+        project.description,
+        project.id
+    ).execute(&pool).await?;
+    Ok(Json(true))
+}
+
+async fn delete_project(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Json<bool>> {
+    sqlx::query!("DELETE FROM project WHERE id = ?", id)
+        .execute(&pool)
+        .await?;
+    Ok(Json(true))
+}
+
+async fn list_todo(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Json<Vec<Todo>>> {
+    let todos = sqlx::query_as!(Todo, "SELECT id, description, project_id, done FROM todo WHERE id = ?",
+        id
+    )
+        .fetch_all(&pool)
+        .await?;
+    Ok(Json(todos))
+}
+
+async fn create_todo(State(pool): State<SqlitePool>, Form(todo): Form<NewTodo>) -> Result<Json<bool>> {
+    sqlx::query!(
+        "INSERT INTO todo (project_id, description) VALUES (?, ?)",
+        todo.project_id,
+        todo.description
+    )
+        .execute(&pool)
+        .await?;
+    Ok(Json(true))
+}
+
+async fn read_todo(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Json<Todo>> {
     let todo = sqlx::query_as!(
         Todo,
-        "SELECT id, description FROM project WHERE id = ?",
+        "SELECT id, description, project_id, done FROM todo WHERE id = ?",
         id
     )
         .fetch_one(&pool)
@@ -77,19 +140,18 @@ async fn read(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Jso
     Ok(Json(todo))
 }
 
-async fn update(State(pool): State<SqlitePool>, Form(todo): Form<Todo>) -> Result<Json<bool>> {
-    // Update todo
+async fn update_todo(State(pool): State<SqlitePool>, Form(todo): Form<Todo>) -> Result<Json<bool>> {
     sqlx::query!(
-        "UPDATE project SET description = ? WHERE id = ?",
+        "UPDATE todo SET description = ?, done = ? WHERE id = ?",
         todo.description,
+        todo.done,
         todo.id
     ).execute(&pool).await?;
     Ok(Json(true))
 }
 
-async fn delete(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Json<bool>> {
-    // Update todo
-    sqlx::query!("DELETE FROM project WHERE id = ?", id)
+async fn delete_todo(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<Json<bool>> {
+    sqlx::query!("DELETE FROM todo WHERE id = ?", id)
         .execute(&pool)
         .await?;
     Ok(Json(true))

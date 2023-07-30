@@ -4,7 +4,7 @@
 
     function createNewProject() {
 
-        fetch("http://localhost:8000/create", {
+        fetch("http://localhost:8000/createProject", {
             method: "POST",
             headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
             body: "description=" + name
